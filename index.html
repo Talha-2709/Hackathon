@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLITCH RUNNER: SYSTEM FAILURE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div id="score-display">Score: <span id="score">0</span></div>
+            <div id="level-display">Level: <span id="level">1</span></div>
+            <div id="glitch-display">Glitch: <span id="glitch">None</span></div>
+            <div id="skill-display">Skill: <span id="skill">None</span></div>
+            <div id="dice-display">Dice: <span id="dice-rolls">2</span></div>
+        </div>
+        <div id="start-screen" class="screen">
+            <h1>GLITCH RUNNER</h1>
+            <h2>SYSTEM FAILURE</h2>
+            <p>Press ENTER to start</p>
+            <p class="controls">Controls: Arrow Keys to move, SPACE to jump, R to roll dice</p>
+        </div>
+        <div id="win-screen" class="screen hidden">
+            <h1>SYSTEM RESTORED</h1>
+            <p>You completed all levels!</p>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <p>Press ENTER to play again</p>
+        </div>
+        <div id="game-over-screen" class="screen hidden">
+            <h1>SYSTEM FAILURE</h1>
+            <p>Game Over</p>
+            <p>Score: <span id="game-over-score">0</span></p>
+            <p>Press ENTER to restart</p>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
