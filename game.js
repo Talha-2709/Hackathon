@@ -28,6 +28,110 @@ let bgOffset = 0;
 // Particle system
 const particles = [];
 
+// Glitch visual effects state
+let glitchEffects = {
+    floatParticles: [],
+    screenTint: null,
+    screenFlip: false,
+    motionBlur: false,
+    platformShake: 0,
+    obsFlash: 0
+};
+
+function updateGlitchEffects(deltaTime) {
+    // Update floating particles for low gravity
+    if (currentGlitch && currentGlitch.effect === 'lowGravity') {
+        if (Math.random() < 0.3) {
+            glitchEffects.floatParticles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: 2 + Math.random() * 3,
+                velY: -0.5 - Math.random() * 0.5,
+                life: 1.0,
+                color: Math.random() > 0.5 ? '#0ff' : '#f0f'
+            });
+        }
+        // Update existing float particles
+        for (let i = glitchEffects.floatParticles.length - 1; i >= 0; i--) {
+            const p = glitchEffects.floatParticles[i];
+            p.y += p.velY;
+            p.life -= deltaTime / 1000;
+            if (p.life <= 0) glitchEffects.floatParticles.splice(i, 1);
+        }
+        glitchEffects.screenTint = null;
+        glitchEffects.screenFlip = false;
+        glitchEffects.motionBlur = false;
+        glitchEffects.platformShake = 0;
+        glitchEffects.obsFlash = 0;
+    } else if (currentGlitch && currentGlitch.effect === 'highGravity') {
+        glitchEffects.screenTint = 'rgba(0, 0, 30, 0.3)';
+    } else if (currentGlitch && currentGlitch.effect === 'reverseGravity') {
+        glitchEffects.screenFlip = true;
+        glitchEffects.screenTint = 'rgba(30, 0, 30, 0.2)';
+    } else if (currentGlitch && currentGlitch.effect === 'invertedControls') {
+        glitchEffects.screenTint = 'rgba(30, 0, 0, 0.25)';
+    } else if (currentGlitch && currentGlitch.effect === 'speedBoost') {
+        glitchEffects.motionBlur = true;
+    } else if (currentGlitch && currentGlitch.effect === 'slowMode') {
+        glitchEffects.screenTint = 'rgba(0, 0, 30, 0.2)';
+    } else if (currentGlitch && currentGlitch.effect === 'obstacleSpeedUp') {
+        glitchEffects.obsFlash = (Math.floor(Date.now() / 100) % 2) ? 1 : 0;
+    } else if (currentGlitch && currentGlitch.effect === 'platformShift') {
+        glitchEffects.platformShake = Math.sin(Date.now() / 100) * 2;
+    } else if (currentGlitch && currentGlitch.effect === 'screenFlicker') {
+        // handled directly in draw
+    } else if (!currentGlitch) {
+        // Clear effects
+        glitchEffects.floatParticles = [];
+        glitchEffects.screenTint = null;
+        glitchEffects.screenFlip = false;
+        glitchEffects.motionBlur = false;
+        glitchEffects.platformShake = 0;
+        glitchEffects.obsFlash = 0;
+    }
+}
+
+function drawGlitchEffects() {
+    // Floating particles (low gravity)
+    for (const p of glitchEffects.floatParticles) {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life * 0.6;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+
+    // Screen tint overlays
+    if (glitchEffects.screenTint) {
+        ctx.fillStyle = glitchEffects.screenTint;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Screen flip (reverse gravity)
+    if (glitchEffects.screenFlip) {
+        ctx.save();
+        ctx.translate(0, canvas.height);
+        ctx.scale(1, -1);
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+
+    // Motion blur (speed boost)
+    if (glitchEffects.motionBlur && player) {
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.15)';
+        for (let i = 1; i <= 3; i++) {
+            ctx.fillRect(player.x - player.velX * i * 3, player.y, player.width, player.height);
+        }
+    }
+
+    // Obstacle flash (obstacle speed up)
+    if (glitchEffects.obsFlash > 0) {
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
 function createParticle(x, y, type) {
     const particle = {
         x, y,
@@ -546,6 +650,9 @@ function update(deltaTime) {
     // Update particles
     updateParticles(deltaTime);
 
+    // Update glitch visual effects
+    updateGlitchEffects(deltaTime);
+
     if (currentGlitch && Date.now() > glitchEndTime) clearGlitchEffects();
     if (!currentGlitch && Date.now() - lastGlitchTime > 8000 + Math.random() * 4000) {
         triggerGlitch();
@@ -662,15 +769,26 @@ function draw() {
         }
     }
 
+    // Screen flicker effect
+    if (currentGlitch && currentGlitch.effect === 'screenFlicker' && Math.floor(Date.now() / 100) % 2) {
+        ctx.fillStyle = 'rgba(20, 20, 20, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Draw glitch-specific visual effects
+    drawGlitchEffects();
+
     // Draw platforms with gradients
     for (let p of platforms) {
-        const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+        const shakeX = glitchEffects.platformShake * (Math.random() - 0.5);
+        const shakeY = glitchEffects.platformShake * (Math.random() - 0.5);
+        const grad = ctx.createLinearGradient(p.x + shakeX, p.y + shakeY, p.x + shakeX, p.y + shakeY + p.height);
         grad.addColorStop(0, '#ccc'); grad.addColorStop(0.3, '#888'); grad.addColorStop(1, '#444');
         ctx.fillStyle = grad;
-        ctx.fillRect(p.x, p.y, p.width, p.height);
-        ctx.fillStyle = '#eee'; ctx.fillRect(p.x, p.y, p.width, 4);
-        ctx.fillStyle = '#222'; ctx.fillRect(p.x, p.y + p.height - 4, p.width, 4);
-        ctx.strokeStyle = '#666'; ctx.lineWidth = 1; ctx.strokeRect(p.x, p.y, p.width, p.height);
+        ctx.fillRect(p.x + shakeX, p.y + shakeY, p.width, p.height);
+        ctx.fillStyle = '#eee'; ctx.fillRect(p.x + shakeX, p.y + shakeY, p.width, 4);
+        ctx.fillStyle = '#222'; ctx.fillRect(p.x + shakeX, p.y + shakeY + p.height - 4, p.width, 4);
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 1; ctx.strokeRect(p.x + shakeX, p.y + shakeY, p.width, p.height);
     }
 
     // Draw spikes
@@ -698,10 +816,18 @@ function draw() {
     // Obstacles (glowing)
     for (let obs of obstacles) {
         const pulse = 0.7 + Math.sin(Date.now() / 150) * 0.3;
-        ctx.shadowColor = '#f00'; ctx.shadowBlur = 10 * pulse;
-        ctx.fillStyle = `rgba(255, 50, 50, ${pulse})`;
+        ctx.shadowColor = '#f00';
+        ctx.shadowBlur = 10 * pulse;
+        // Flash white if obstacle speed up glitch active
+        if (glitchEffects.obsFlash) {
+            ctx.fillStyle = '#fff';
+        } else {
+            ctx.fillStyle = `rgba(255, 50, 50, ${pulse})`;
+        }
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        ctx.strokeStyle = '#f00'; ctx.lineWidth = 2; ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.strokeStyle = glitchEffects.obsFlash ? '#ff0' : '#f00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
         ctx.shadowBlur = 0;
     }
 
