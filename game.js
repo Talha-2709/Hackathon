@@ -25,6 +25,123 @@ function generateStars(count) {
 
 let bgOffset = 0;
 
+// Particle system
+const particles = [];
+
+function createParticle(x, y, type) {
+    const particle = {
+        x, y,
+        type,
+        life: 1.0,
+        maxLife: 1.0,
+        velX: 0,
+        velY: 0,
+        size: 4,
+        color: '#fff'
+    };
+
+    switch(type) {
+        case 'jump':
+            particle.velY = -Math.random() * 2;
+            particle.velX = (Math.random() - 0.5) * 2;
+            particle.color = '#88f';
+            particle.size = 3;
+            particle.life = 0.5;
+            particle.maxLife = 0.5;
+            break;
+        case 'land':
+            particle.velY = -Math.random() * 1.5;
+            particle.velX = (Math.random() - 0.5) * 3;
+            particle.color = '#888';
+            particle.size = 2 + Math.random() * 2;
+            particle.life = 0.3;
+            particle.maxLife = 0.3;
+            break;
+        case 'glitch':
+            particle.velY = Math.random() * 4 - 2;
+            particle.velX = Math.random() * 4 - 2;
+            particle.color = Math.random() > 0.5 ? '#f00' : '#0ff';
+            particle.size = 2 + Math.random() * 3;
+            particle.life = 0.2 + Math.random() * 0.3;
+            particle.maxLife = particle.life;
+            break;
+        case 'shield':
+            particle.angle = Math.random() * Math.PI * 2;
+            particle.dist = 20 + Math.random() * 10;
+            particle.color = '#0ff';
+            particle.size = 2;
+            particle.life = 0.8;
+            particle.maxLife = 0.8;
+            break;
+        case 'speed':
+            particle.velX = -3 - Math.random() * 2;
+            particle.color = '#ff0';
+            particle.size = 1 + Math.random() * 2;
+            particle.life = 0.3 + Math.random() * 0.2;
+            particle.maxLife = particle.life;
+            break;
+        case 'phase':
+            particle.color = '#f0f';
+            particle.size = 3 + Math.random() * 2;
+            particle.life = 0.5 + Math.random() * 0.3;
+            particle.maxLife = particle.life;
+            particle.velX = (Math.random() - 0.5) * 2;
+            particle.velY = (Math.random() - 0.5) * 2;
+            break;
+        case 'explosion':
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 4;
+            particle.velX = Math.cos(angle) * speed;
+            particle.velY = Math.sin(angle) * speed;
+            particle.color = ['#f00', '#ff0', '#f80'][Math.floor(Math.random() * 3)];
+            particle.size = 3 + Math.random() * 4;
+            particle.life = 0.8 + Math.random() * 0.5;
+            particle.maxLife = particle.life;
+            break;
+    }
+
+    particles.push(particle);
+}
+
+function updateParticles(deltaTime) {
+    const dt = deltaTime / 16.6; // Normalize to ~1 per frame
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= deltaTime / 1000;
+
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+
+        // Update position
+        if (p.type === 'shield') {
+            p.angle += 0.1;
+            p.x = player.x + player.width/2 + Math.cos(p.angle) * p.dist;
+            p.y = player.y + player.height/2 + Math.sin(p.angle) * p.dist;
+        } else {
+            p.x += p.velX * dt;
+            p.y += p.velY * dt;
+        }
+
+        // Gravity for some types
+        if (['jump', 'land', 'explosion', 'phase'].includes(p.type)) {
+            p.velY += 0.2 * dt;
+        }
+    }
+}
+
+function drawParticles() {
+    for (const p of particles) {
+        const alpha = p.life / p.maxLife;
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = alpha;
+        ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+}
+
 // Game state
 let gameState = 'start';
 let currentLevel = 1;
@@ -165,6 +282,7 @@ document.addEventListener('keydown', (e) => {
         if (player.onGround) {
             player.velY = -player.jumpForce;
             player.onGround = false;
+            spawnJumpParticles();
         }
     }
     if (e.key === 'r' || e.key === 'R') rollDice();
@@ -261,9 +379,34 @@ function rollDice() {
     updateUI();
 }
 
+function spawnJumpParticles() {
+    for (let i = 0; i < 8; i++) createParticle(player.x + player.width/2, player.y + player.height, 'jump');
+}
+
+function spawnLandParticles() {
+    for (let i = 0; i < 6; i++) createParticle(player.x + player.width/2 + (Math.random() - 0.5) * 20, player.y + player.height, 'land');
+}
+
+function spawnGlitchParticles() {
+    for (let i = 0; i < 5; i++) createParticle(
+        Math.random() * canvas.width,
+        Math.random() * canvas.height,
+        'glitch'
+    );
+}
+
+function spawnSkillParticles(type) {
+    for (let i = 0; i < 10; i++) createParticle(player.x + player.width/2, player.y + player.height/2, type);
+}
+
+function spawnExplosion(x, y) {
+    for (let i = 0; i < 30; i++) createParticle(x, y, 'explosion');
+}
+
 function activateSkill(skill) {
     activeSkill = skill;
     skillEndTime = Date.now() + skill.duration;
+    spawnSkillParticles(skill.name === 'SHIELD' ? 'shield' : skill.name === 'SUPER SPEED' ? 'speed' : skill.name === 'PHASE MODE' ? 'phase' : null);
     if (skill.name === 'SHIELD') player.shield = true;
     else if (skill.name === 'SUPER SPEED') player.speed *= 2;
     else if (skill.name === 'HIGH JUMP') player.jumpForce = 18;
@@ -286,6 +429,7 @@ function triggerGlitch() {
     currentGlitch = glitch;
     glitchEndTime = Date.now() + glitch.duration;
     applyGlitch(glitch.effect);
+    spawnGlitchParticles();
     updateUI();
 }
 
@@ -399,12 +543,30 @@ function update(deltaTime) {
     if (Math.abs(player.velX) > 0 && player.onGround) player.animTimer += 0.2;
     else player.animTimer = 0;
 
+    // Update particles
+    updateParticles(deltaTime);
+
     if (currentGlitch && Date.now() > glitchEndTime) clearGlitchEffects();
     if (!currentGlitch && Date.now() - lastGlitchTime > 8000 + Math.random() * 4000) {
         triggerGlitch();
         lastGlitchTime = Date.now();
     }
     if (activeSkill && Date.now() > skillEndTime) deactivateSkill();
+
+    // Spawn glitch particles periodically
+    if (currentGlitch && Math.random() < 0.1) {
+        spawnGlitchParticles();
+    }
+
+    // Continuous phase particles
+    if (player.canPhase && Math.random() < 0.2) {
+        createParticle(player.x + Math.random() * player.width, player.y + Math.random() * player.height, 'phase');
+    }
+
+    // Continuous shield particles
+    if (player.shield && Math.random() < 0.15) {
+        createParticle(player.x + player.width/2, player.y + player.height/2, 'shield');
+    }
 
     let moveDir = 0;
     if (keys.left) moveDir += (currentGlitch && currentGlitch.effect === 'invertedControls') ? 1 : -1, player.facingRight = false;
@@ -423,6 +585,7 @@ function update(deltaTime) {
             if (player.y + player.height >= p.y && player.y + player.height <= p.y + 20 && player.velY >= 0) {
                 player.y = p.y - player.height;
                 player.velY = 0;
+                if (!player.onGround) spawnLandParticles(); // Just landed
                 player.onGround = true;
             } else if (player.y <= p.y + p.height && player.y >= p.y + p.height - 20 && player.velY < 0) {
                 player.y = p.y + p.height;
@@ -559,6 +722,9 @@ function draw() {
     for (let i = 0; i < canvas.height; i += 40) {
         ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
     }
+
+    // Draw particles (on top)
+    drawParticles();
 }
 
 let lastTime = 0;
@@ -571,6 +737,7 @@ function gameLoop(timestamp = 0) {
 }
 
 function gameOver() {
+    spawnExplosion(player.x + player.width/2, player.y + player.height/2);
     gameState = 'gameOver';
     document.getElementById('game-over-score').textContent = Math.floor(score);
     document.getElementById('game-over-screen').classList.remove('hidden');
