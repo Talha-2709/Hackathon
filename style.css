@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -10,7 +12,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    font-family: 'Courier New', monospace;
+    font-family: 'Press Start 2P', cursive;
     color: #0f0;
     overflow: hidden;
 }
@@ -18,11 +20,13 @@ body {
 #game-container {
     position: relative;
     width: 800px;
-    height: 600px;
+    height: 500px;
+    border: 4px solid #333;
+    box-shadow: 0 0 20px #0f0, inset 0 0 20px rgba(0, 255, 0, 0.1);
 }
 
 #gameCanvas {
-    border: 2px solid #333;
+    border: none;
     background: #050505;
     display: block;
     image-rendering: pixelated;
@@ -36,16 +40,37 @@ body {
     right: 10px;
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
-    text-shadow: 0 0 5px #0f0;
+    font-size: 10px;
+    text-shadow: 0 0 5px currentColor;
     pointer-events: none;
     z-index: 10;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 #ui > div {
-    background: rgba(0, 0, 0, 0.7);
-    padding: 5px 10px;
-    border: 1px solid #0f0;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 6px 10px;
+    border: 2px solid #0f0;
+    border-radius: 4px;
+}
+
+#glitch-display {
+    color: #f00 !important;
+    border-color: #f00 !important;
+    text-shadow: 0 0 8px #f00 !important;
+}
+
+#skill-display {
+    color: #0ff !important;
+    border-color: #0ff !important;
+    text-shadow: 0 0 8px #0ff !important;
+}
+
+#dice-display {
+    color: #ff0 !important;
+    border-color: #ff0 !important;
+    text-shadow: 0 0 8px #ff0 !important;
 }
 
 .screen {
@@ -58,7 +83,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.95);
     z-index: 100;
 }
 
@@ -67,30 +92,33 @@ body {
 }
 
 .screen h1 {
-    font-size: 48px;
+    font-size: 32px;
     color: #0f0;
     text-shadow: 0 0 20px #0f0, 0 0 40px #0f0;
     margin-bottom: 10px;
-    letter-spacing: 4px;
+    letter-spacing: 2px;
+    text-align: center;
 }
 
 .screen h2 {
-    font-size: 24px;
+    font-size: 20px;
     color: #f00;
     text-shadow: 0 0 15px #f00;
     margin-bottom: 30px;
 }
 
 .screen p {
-    font-size: 18px;
+    font-size: 12px;
     margin: 10px 0;
     color: #0f0;
+    text-align: center;
 }
 
 .screen .controls {
-    font-size: 14px;
+    font-size: 10px;
     color: #888;
     margin-top: 30px;
     text-align: center;
     max-width: 400px;
+    line-height: 1.8;
 }
